@@ -273,7 +273,7 @@ Ideas:
         // This function will govern the theme for the simulation
         // three themes are defined in this function.  The function also randomly sets a few 
         // of the simulation variables such as grid size (N).
-        N = Math.floor(Math.random() * 6)+9
+        N = Math.floor(Math.random() * 6)+8
         // theme 1
         if (theme === 1) {
             // rgb(0, 77, 64), // rgb(26, 35, 126)
@@ -845,7 +845,7 @@ Ideas:
             if( alive.length < n ) {
                 
                 let newalive = n-alive.length < dead.length ? n - alive.length : dead.length;
-                console.log("creating:",newalive)
+                //console.log("creating:",newalive)
                 for(let i = 0; i < newalive; ++i) {
                     giveLife(dead[i]);
                     cdead -= 1;
@@ -856,9 +856,9 @@ Ideas:
             else if( alive.length > n ) {
                 
                 let newdead = alive.length - n;
-                console.log("killing:",newdead)
+                //console.log("killing:",newdead)
                 for(let i = 0; i < newdead; ++i) {
-                    console.log(i)
+                    //console.log(i)
                     kill(alive[i]);
                     calive -= 1;
                     tdead += 1;
@@ -1028,11 +1028,11 @@ Ideas:
                 rotY = avg/1000+rotYoff;
                 let v =  Math.round(-1.54*avg + 139.5);
                 delay = v < 1 ? 1 : (v > 40 ? 40 : v);
-                // console.log(delay)
+                
                 let rn = Math.floor(Math.random()*3);
                 let val = Math.pow(avg,3)/Math.pow(70,3) * avg + 10;
-                console.log(lightChannels)
                 var rv = 0, rg = 0, rb = 0;
+                
                 if (lightChannels.r) {
                     rv = val;
                 }
