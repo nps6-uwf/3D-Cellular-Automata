@@ -13,6 +13,8 @@ The update rules of the automata are governed by two sets, <b>rule 1</b> and <b>
 
 The longer a cube survives the <i>whiter</i> it becomes.  I have preset 3 themes (yellow, black, and green), one of these themes is randomly selected when the page is loaded, I have added a slight probabalistic edge for black becuase it is my favorite.  To make the simulation more interesting the rule sets mutates over time, the neighborhood function may also periodically change.  The flashing light on the screen border is also synchronized with the audio frequency.
 
+Due to the audio api I am using, this simulation will only work on the <b>Google Chrome</b> web browser.
+
 
 
 
