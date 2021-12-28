@@ -196,7 +196,7 @@ Date: 12/2021
             </p>
         </fieldset>
     </div>
-    <div class="light"></div>
+    <div class="light" onclick="void(0);"></div>
     <!-- Start page: (click to start) -->
     <div id="page-1">
         <span class="page-1-text">Click to start</span>
@@ -1084,7 +1084,7 @@ Date: 12/2021
     window.onload = function(){
         // functionality that occurs when page loads
         document.body.addEventListener("click", audioPlayOnClick);
-        document.body.addEventListener("touchstart", audioPlayOnClick);
+        //document.body.addEventListener("touchstart", audioPlayOnClick);
         // invoke main function on click
         function clickToStart(){
             main();
@@ -1092,7 +1092,7 @@ Date: 12/2021
             document.querySelector("#page-1").style.display = "none"; // hide welcome screen
         }
         document.body.addEventListener("click", clickToStart);
-        document.body.addEventListener("touchstart", clickToStart);
+        //document.body.addEventListener("touchstart", clickToStart);
     }
 </script>
 </html>
