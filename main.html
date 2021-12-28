@@ -1,0 +1,1099 @@
+<!-- 
+Author: Nick Sebasco
+Date: 12/2021
+Ideas:
+- Update grid size (harder than expected)
+- Pause simulation
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Nick Sebasco">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital@0;1&display=swap');
+
+        html, body{
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(rgb( 118, 255, 3),rgb(80, 200, 75));
+        }
+        #page-1 {
+            width: 100vw;
+            height: 100vh;
+            line-height: 100vh;
+            letter-spacing: 1px;
+            font-weight: 300;
+            font-size: larger;
+            text-align: center;
+            font-family: 'Ubuntu Mono';
+            font-size: 3em;
+        }
+        
+        #settings{
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            z-index: 3;
+        }
+        #settings-menu {
+            display: none;
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            z-index: 3;
+
+        }
+        .icon {
+            width: 25px; height: auto;
+            border-radius: 100%;
+            border: 1px dashed rgba(0,0,0,0);
+        }
+        .close:hover{
+            /*border: 1px solid red;*/
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        .open:hover{
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        label{
+            width: 50%;
+            font-weight: bold;
+            font-family: 'Ubuntu Mono';
+            margin-left: 5px;
+        }
+        .label{
+            text-align: right;
+            font-weight: bold;
+            font-family: 'Ubuntu Mono';
+            letter-spacing: 0.1px;
+        }
+        .label-icon {
+            font-weight: bold;
+            font-family: 'Ubuntu Mono'; 
+            margin-left: 10px;
+            font-style: italic;
+        }
+        .settings-input{
+            text-align: center;
+            width: 50%;
+        }
+        .btn {
+            text-align: center;
+            display: inherit;
+            margin-left: 25%;
+            width: 50%;
+            height: 40%;
+            border: 1px solid silver;
+            color: rgb( 118, 255, 3);
+            border-radius: 2px;
+            background: black;
+            font-weight: bold;
+            font-family:'Ubuntu Mono';
+        }
+        .btn:hover{
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        .pause-container{
+            display: inline-block;
+            height: 25px;
+        }
+        .pause{
+            display: inline-block;
+            height: 100%;
+            float: left;
+        }
+        #pause-btn:hover{
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        audio {
+            position: absolute;
+        }
+        fieldset{
+            width: 35%;
+        }
+        p{
+            width: 90%;
+            font-size: 12px;
+        }
+        .light{
+            position: absolute;
+            width: calc(100vw - 40px);
+            height: calc(100vh - 40px);
+            left: 0vw;
+            top: 0vh;
+            background: rgba(0,0,0,0);
+            border-radius: 0%;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.2/underscore-min.js" integrity="sha512-anTuWy6G+usqNI0z/BduDtGWMZLGieuJffU89wUU7zwY/JhmDzFrfIZFA3PY7CEX4qxmn3QXRoXysk6NBh5muQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>3D Automata</title>
+</head>
+<body>
+    <div id="settings">
+        <img class="icon open" src="assets/menu1.png" alt="">
+    </div>
+    <div id="settings-menu">
+        <img class="icon close" id="settings-close" src="assets/close.png" alt="">
+        <fieldset>
+            <input class="settings-input" id="gsize" type="text"><label for="">Grid Size</label>
+            <br>
+            <input class="settings-input" id="falive" type="text"><label for="">Fraction Alive</label>
+            <br>
+            <input class="settings-input" id="cspacing" type="text"><label for="">Cube Spacing</label>
+            <br>
+            <input class="settings-input" id="csize" type="text"><label for="">Cube Size</label>
+            <br>
+            <input class="settings-input" id="cbgcolor" type="text"><label for="">Background Color (r,g.b)</label>
+            <br>
+            <input class="settings-input" id="rotvel" type="text"><label for="">Rotation Velocity (x, y)</label>
+            <br>
+            <input class="settings-input" id="rule1" type="text"><label for="">Rule 1 (Survival)</label>
+            <br>
+            <input class="settings-input" id="rule2" type="text"><label for="">Rule 2 (Rebirth)</label>
+            <br>
+            <input class="settings-input" id="cubecolors" type="text"><label for="">Cube Colors</label>
+            <br>
+            <select name="neighborhood" id="neighborhood" class="settings-input">
+                <option value="std">Standard (6 neighbors)</option>
+                <option value="ext">Extended (26 neighbors)</option>
+            </select>
+            <label for="neighborhood">Neighborhood</label>
+            <br>
+            <input class="settings-input" id="simspeed" type="range" min="-40" max="0" value="-40"><label for="">Simulation speed</label>
+            <br>
+            <input checked type="checkbox" id="spatial-oscillation" name="spatial-oscillation" value="true">
+            <label  for="spatial-oscillation"> Spatial Oscillation </label>
+            <br>
+            <div class="pause-container">
+                <div class="pause">
+                    <img id="pause-btn" class="icon" src="assets/pause2.png" alt="">
+                </div>
+                <div id="pause-label" class="pause label-icon"> Nyce - James Njie</div>
+            </div>
+
+            <br>
+            <div id="restart" class="btn">Restart</div>
+            <br>
+            <table id="datatable">
+                <tr><td class="label">Iteration Count</td><td class="data-td" id="itcount"></td></tr>
+                <tr><td class="label">Alive (now)</td><td class="data-td" id="alivenow"></td></tr>
+                <tr><td class="label">Dead (now)</td><td class="data-td" id="deadnow"></td></tr>
+                <tr><td class="label">Dead (total)</td><td class="data-td" id="deadtotal"></td></tr>
+                <tr><td class="label">Alive (total)</td><td class="data-td" id="alivetotal"></td></tr>
+            </table>
+            <p>
+                This is a rotating 3D cellular automata simulation governed by simple rules.  Rule 1, the survival criterion, 
+                governs how many neighboring cubes need to be alive in order for a cube to survive into a future generation.  Rule 2,
+                the rebirth criterion, dictates how many living neighbors a dead cell must have to be reborn next generation.  The longer 
+                a cube survives the lighter (more white) a cube will get.  The oldest cubes will be pure white.
+            </p>
+        </fieldset>
+    </div>
+    <div class="light"></div>
+    <!-- Start page: (click to start) -->
+    <div id="page-1">
+        <span class="page-1-text">Click to start</span>
+    </div>
+    <audio src="assets/Nyce.mp3" type="audio/mpeg"></audio>
+</body>
+<script>
+    /*
+    (1) Survival criterion: Any live cell with n live neighbours survives.
+    (2) Rebirth criterion: Any dead cell with m live neighbours becomes a live cell.
+    (3) Death Criterion: All other live cells die in the next generation. Similarly, all other dead cells stay dead
+    */
+    // Automata rules
+    var rule1 = new Set([2,3,4,5,6]); // survival
+    var rule2 = new Set([1,2]); // Rebirth
+    var rule3 = new Set([0, 1, 2]); // Death
+
+    // Simulation attributes
+    // rgb(255, 87, 34), rgb(136, 14, 79), rgb(255, 61, 0), rgb(245, 124, 0)
+    var aliveColors = [ new THREE.Color("rgb(255, 87, 34)"), new THREE.Color("rgb(0, 124, 255)")];
+    var deadColors = [new THREE.Color(0x000000)];
+    var bgColor = {r: 118, g: 255, b: 3}; // rgb(118, 255, 3)
+    var bgGColors = [{r: 80, g: 200, b: 75},{r:13,g:45,b:16}]; // rgb(67, 160, 71), rgb(56, 142, 60), rgb(27, 94, 32)
+    var fraction = .1;
+    var rotX = 0.02; // how fast the grid rotates.
+    var rotY = 0.01;
+    var rotXoff = Math.random() * rotX;
+    var rotYoff = Math.random() * rotY;
+    var deadTransparent = true;
+    var opacity = 1;
+    var cameraPosZ = 9;// z position of the camera;
+    var N = 10; // grid size
+    var sideLength = 0.2; // cube side length
+    var delta = 0 // cube offset
+    var delta0 = delta + 0;
+    var delay = 40; // how quickly updates occur
+    var progressiveUpdateDelay = 1000; // how quickly pseduorandom mutations occur 
+    var neighborhoodFunction = getNeighbors; // declare which neighborhood function to use in the simulation.
+    var frandomKill = true; // when setting the fraction alive, kill random cubes, or the most recent cubes.
+    var spatialOscillation = true; // should inter cube distance oscillate with time.
+    var dir = .005; // magntidue and direction (sign) for spatial osillation
+    var upperOscLimit = 1;
+    var lowerOscLimit = 0.4;
+    var pDelete = 0.5; // probability that an old alive color will be deleted after colorChangeDelay
+    var audioData;
+    var lightChannels = {r: true, g: true, b: true};
+    var randColorChannels = {r: true, g: true, b: true};
+    var equalizeRandColorChannels = false;
+    var neighborhoodChangeThreshold = 0.5;
+
+    // choose random theme
+    themeSet(choice([1,2,3]));
+    var pulser = gradientPulse(bgGColors, bgColor);
+
+    // data variables
+    var viewportOpen = false; // Is the options panel open?
+    var tdead = 0;
+    var talive = 0;
+    var cdead = 0;
+    var calive = 0;
+    var itcount = 0;
+
+    // variables for scene, renderer, animation, and camera.
+    var myReq; // holds animation state
+    var pauseState = false;
+    var scene; 
+    var camera;
+    var renderer;
+
+    function themeSet(theme) {
+        // This function will govern the theme for the simulation
+        // three themes are defined in this function.  The function also randomly sets a few 
+        // of the simulation variables such as grid size (N).
+        N = Math.floor(Math.random() * 6)+9
+        // theme 1
+        if (theme === 1) {
+            // rgb(0, 77, 64), // rgb(26, 35, 126)
+            aliveColors = [ new THREE.Color("rgb(77, 0, 64)"), new THREE.Color("rgb(255, 35, 255)")];
+            deadColors = [new THREE.Color(0x000000)];
+            bgColor = {r: 118, g: 255, b: 3}; // rgb(118, 255, 3)
+            bgGColors = [{r: 80, g: 200, b: 75},{r:13,g:45,b:16}]; 
+            lightChannels.g = false;
+            randColorChannels.g = false;
+            document.body.style.background ="radial-gradient(rgb( 118, 255, 3),rgb(80, 200, 75))";
+        }
+        // theme 2
+        else if (theme === 2) {
+            fraction = Math.random()*.99 + .01;
+            bgColor = {r: 38, g: 50, b: 56}; // rgb(117, 117, 117)
+            bgGColors = [{r: 117, g: 117, b: 117},{r:33,g:33,b:33}]; // rgb(33, 33, 33), // rgb(38, 50, 56)
+            lightChannels = lightChannels;
+            document.body.style.background ="radial-gradient(rgb( 117, 117, 117),rgb(38, 50, 56))";
+            document.querySelector("#restart").style.color = "rgb(38, 50, 56))";
+        }
+        // theme 3
+        else {
+            //rgb(13, 71, 161), rgb(41, 121, 255)
+            aliveColors = [ new THREE.Color("rgb(13, 71, 161)"), new THREE.Color("rgb(41, 121, 255)")];
+            deadColors = [new THREE.Color(0x000000)];
+            
+            bgColor = {r: 255, g: 255, b: 56}; // rgb(255, 255, 0)
+            bgGColors = [{r: 255, g: 235, b: 59},{r:245,g:127,b:23}]; // rgb(255, 235, 59)  rgb(245, 127, 23)
+            lightChannels.b = false;
+            equalizeRandColorChannels = true;
+            randColorChannels.r = false; randColorChannels.g = false;
+            document.body.style.background ="radial-gradient(rgb( 255, 235, 59),rgb(255, 255, 56))";
+            document.querySelector("#restart").style.color = "rgb(255, 255, 56))";
+        }
+
+    }
+
+    function updateData() {
+        // Updates the data table in the settings menu.
+        document.querySelector("#itcount").innerText = itcount;
+        document.querySelector("#alivenow").innerText = calive;
+        document.querySelector("#deadnow").innerText = cdead;
+        document.querySelector("#deadtotal").innerText = tdead;
+        document.querySelector("#alivetotal").innerText = talive;
+    }
+
+    function gradientPulse(bgGColors, bgColor) {
+        // This creates the background pulsing effect
+
+        let roff = 6; // rate of gradient decay per channel
+        let goff = 0.5;
+        let boff = 0.5;
+        let cmax = bgGColors[0];
+        let cmin = bgGColors[1];
+        XColors = [];
+        
+        // console.log(cmin, cmax)
+        while (bgGColors[0].g > cmin.g) {
+            if (bgGColors[0].r > cmin.r ) {
+                bgGColors[0].r = Math.floor(bgGColors[0].r - roff);
+            }
+            if (bgGColors[0].g > cmin.g ) {
+                bgGColors[0].g = Math.floor(bgGColors[0].g - goff);
+            }
+            if (bgGColors[0].b > cmin.b) {
+                bgGColors[0].b = Math.floor(bgGColors[0].b - boff);
+            }
+            XColors.push({
+                r: bgGColors[0].r, g: bgGColors[0].g, b: bgGColors[0].b
+            });
+        }
+        var bgGColorsr = XColors.slice().reverse(); 
+        XColors = XColors.concat(bgGColorsr.slice(1,XColors.length - 1));
+        // console.log(XColors)
+        return function(i){ // return a pulsing function
+            let c = XColors[i%XColors.length];
+            //console.log(c)
+            document.body.style.background = `radial-gradient(rgb(${bgColor.r},${bgColor.g},${bgColor.b}), rgb(${c.r},${c.g},${c.b}))`;
+        }
+    }
+
+    function choice(arr){
+        // random selection from an array
+        return arr[Math.floor(Math.random()*arr.length)];
+    }
+
+    function initializeAliveCells(n, fraction) {
+        // used underscore js to capture a permutation of the cubic grid.
+        return _.sample(_.range(0,Math.pow(n, 3)), Math.floor(fraction*Math.pow(n, 3)));
+    }
+
+    function kill(cube, deadTransparent) {
+        // Set the ALIVE state of a cube to false (dead), handles style and attribute updates.
+        cube.material.color = new THREE.Color(0x000000);
+        cube.material.transparent = deadTransparent;
+        cube.material.opacity = deadTransparent ? 0 : opacity;
+        cube.ALIVE = false;
+    }
+    function giveLife(cube) {
+        // Set the ALIVE state of a cube to true (alive), handles style and attribute updates.
+        cube.material.color = choice(aliveColors);
+        cube.material.transparent = true;//false;
+        cube.material.opacity = opacity;
+        cube.ALIVE = true;
+    }
+
+    function incrementColor(cube, increment = 1) {
+        // Given a cube, increment all color channels by the parameter increment.
+        let nr = Math.round(255*cube.material.color.r),
+            ng = Math.round(255*cube.material.color.g),
+            nb = Math.round(255*cube.material.color.b);
+        
+        //console.log(cube,nr,ng,nb)
+        cube.material.color = new THREE.Color(`rgb(${nr >=255 ? 255 : nr+increment} , ${ng >= 255 ? 255 : ng+increment}, ${nb >= 255 ? 255 : nb+increment})`);
+    }
+
+    function buildCubeGrid(n, f, s = 1, d = 0,  opacity = opacity) {
+        // This function is responsible for generating the cellular automata 3d grid.  The grid is 
+        // contained within a Three.js group.
+        // n: number of cubes
+        // s: side length of cubes
+        let active = initializeAliveCells(n, f);
+        talive += active.length; calive = talive;
+        tdead += n*n*n - active.length; cdead = tdead;
+        //console.log("Active:",active, active.length, Math.pow(n,3));
+        const grid = new THREE.Group();
+        const marray = [];
+        for (let i = 0; i < n; ++i) {
+            let X = [];
+            for (let j = 0; j < n; ++j) {
+                let Y = []
+                for (let k = 0; k < n; ++k) {
+                    let geometry = new THREE.BoxGeometry(s, s, s);
+                    let  material = new THREE.MeshBasicMaterial( { color: choice(deadColors), transparent: deadTransparent, opacity: deadTransparent ? 0 : opacity} );
+                    let cube = new THREE.Mesh( geometry, material );
+                    cube.position.x = i*(s+d);
+                    cube.position.y = j*(s+d);
+                    cube.position.z = k*(s+d);
+                    cube.ALIVE = false;
+
+                    grid.add(cube);
+                    Y.push(cube);
+                }
+                X.push(Y)
+            }
+            marray.push(X)
+        }
+        // color the active cells;
+        //console.log(grid.children)
+        for (let i = 0; i < active.length; ++ i) {
+            giveLife(grid.children[active[i]])
+
+        }
+        window.marray = marray
+        return {grid: grid, marray: marray};
+    }
+
+    function getNeighbors(ri, rj, rk, marray, deadTransparent) {
+        // Defining the 3D neighborhood as all surrounding cubes that align with one of the six faces.
+        // Each cube can have at most 6 neighbors and at fewest 3 neighbors.
+        let neighbors = [];
+
+        if (ri < N-1) { // case 1: +x direction
+            neighbors.push(marray[ri+1][rj][rk])
+        }
+        if (ri > 0) { // case 2: -x direction
+            neighbors.push(marray[ri-1][rj][rk]);
+        }
+        if (rj < N-1) { // case 3: +y direction
+            neighbors.push(marray[ri][rj+1][rk])
+        }
+        if (rj > 0) { // case 4: -y direction
+            neighbors.push(marray[ri][rj-1][rk]);
+        }
+        if (rk < N-1) { // case 5: +z direction
+            neighbors.push(marray[ri][rj][rk+1]);
+        }
+        if (rk > 0) { // case 6: -z direction
+            neighbors.push(marray[ri][rj][rk-1]);
+        }
+        return neighbors;
+    }
+
+
+    function getExtendedNeighbors(ri, rj, rk, marray, deadTransparent) {
+        // Defining the 3D extended neighborhood as all surrounding cubes that align with one of the six faces
+        // and all corners.  so a central cube 
+        // Each cube can have at most 26 neighbors.
+        let neighbors = [];
+
+        if (ri < N-1) { // case 1: +x direction
+            neighbors.push(marray[ri+1][rj][rk]) // 1
+            if (rj < N-1) { // case 1b: +y direction
+                neighbors.push(marray[ri+1][rj+1][rk]) // 2
+                if (rk < N-1) { // case 1c: +z direction
+                    neighbors.push(marray[ri+1][rj+1][rk+1]); // 3 
+                }
+                if (rk > 0) { // case 1d: -z direction
+                    neighbors.push(marray[ri+1][rj+1][rk-1]); // 4
+                }
+            }
+            if (rj > 0) { // case 1e: -y direction
+                neighbors.push(marray[ri+1][rj-1][rk]); // 5
+                if (rk < N-1) { // case 1f: +z direction
+                    neighbors.push(marray[ri+1][rj-1][rk+1]); // 6
+                }
+                if (rk > 0) { // case 1g: -z direction
+                    neighbors.push(marray[ri+1][rj-1][rk-1]); // 7
+                }
+            }
+            if (rk < N-1) { // case 1c: +z direction
+                    neighbors.push(marray[ri+1][rj][rk+1]); // 23 
+                }
+            if (rk > 0) { // case 1d: -z direction
+                neighbors.push(marray[ri+1][rj][rk-1]); // 24
+            }
+        }
+        if (ri > 0) { // case 2a: -x direction
+            neighbors.push(marray[ri-1][rj][rk]); // 8
+            if (rj < N-1) { // case 2b: +y direction
+                neighbors.push(marray[ri-1][rj+1][rk]); // 9
+                if (rk < N-1) { // case 2c: +z direction
+                    neighbors.push(marray[ri-1][rj+1][rk+1]); // 10
+                }
+                if (rk > 0) { // case 2d: -z direction
+                    neighbors.push(marray[ri-1][rj+1][rk-1]); // 11
+                }
+            }
+            if (rj > 0) { // case 2e: -y direction
+                neighbors.push(marray[ri-1][rj-1][rk]); // 12
+                if (rk < N-1) { // case 2f: +z direction
+                    neighbors.push(marray[ri-1][rj-1][rk+1]); // 13
+                }
+                if (rk > 0) { // case 2g: -z direction
+                    neighbors.push(marray[ri-1][rj-1][rk-1]); // 14
+                }
+            }
+            if (rk < N-1) { // case 2f: +z direction
+                neighbors.push(marray[ri-1][rj][rk+1]); // 25
+            }
+            if (rk > 0) { // case 2g: -z direction
+                neighbors.push(marray[ri-1][rj][rk-1]); // 26
+            }
+        }
+
+        if (rj < N-1) { // case 3: +y direction
+            neighbors.push(marray[ri][rj+1][rk]); // 15
+            if (rk < N-1) { // case 2f: +z direction
+                    neighbors.push(marray[ri][rj+1][rk+1]); //16
+                }
+            if (rk > 0) { // case 2g: -z direction 
+                neighbors.push(marray[ri][rj+1][rk-1]); // 17
+            }
+        }
+        if (rj > 0) { // case 4: -y direction
+            neighbors.push(marray[ri][rj-1][rk]); // 18
+            if (rk < N-1) { // case 2f: +z direction
+                    neighbors.push(marray[ri][rj-1][rk+1]); // 19
+                }
+            if (rk > 0) { // case 2g: -z direction
+                neighbors.push(marray[ri][rj-1][rk-1]); // 20
+            }
+        }
+        if (rk < N-1) { // case 5: +z direction
+            neighbors.push(marray[ri][rj][rk+1]); // 21
+        }
+        if (rk > 0) { // case 6: -z direction
+            neighbors.push(marray[ri][rj][rk-1]); //22
+        }
+
+        return neighbors;
+    }
+
+    function execRules(n, marray, deadTransparent) {
+        // This function executes the 3d automata rules.
+        const updates = [];
+        //window.marray = marray;
+        for (let i = 0; i < n; ++i) {
+            let X = [];
+            for (let j = 0; j < n; ++j) {
+                let Y = [];
+                for (let k = 0; k < n; ++k) {
+                    let neighbors = neighborhoodFunction(i, j, k, marray, deadTransparent);
+                    let aliveCount = neighbors.filter((z)=>z.ALIVE).length;
+
+                    if (marray[i][j][k].ALIVE) {
+                        if (rule1.has(aliveCount)) {
+                            Y.push(1); // survival criterion has been met
+                        }
+                        else {
+                            tdead += 1;
+                            cdead += 1;
+                            calive -= 1;
+                            Y.push(0); // death criterion
+                        }
+                    } else {
+                        if (rule2.has(aliveCount)) {
+                            cdead -= 1;
+                            talive += 1;
+                            calive += 1;
+                            Y.push(2);
+                        }
+                        else {
+                            Y.push(0);
+                        }
+                    }
+                }
+                X.push(Y);
+            }
+            updates.push(X);
+        }
+        for (let i = 0; i < n; ++i) {
+            for (let j = 0; j < n; ++j) {
+                for (let k = 0; k < n; ++k) {
+                    if (updates[i][j][k] === 2) {
+                        giveLife(marray[i][j][k]);
+                    }
+                    else if (updates[i][j][k] === 1) {
+                        incrementColor(marray[i][j][k]);
+                    }
+                    else {
+                        kill(marray[i][j][k], deadTransparent)
+                    }
+                }
+            }
+        }
+    }
+
+    // UI functions
+    // Check inside of the main function for additional methods that need state access.
+    document.querySelector("#settings").onclick= function(){
+        // Functionality that occurs when the settings button clicked,
+        viewportOpen = true;
+        document.querySelector("#settings-menu").style.display = "inline-block";
+        this.style.display = "none"; // hide the settings open button
+        document.querySelector("#gsize").value = N;
+        document.querySelector("#rule1").value = Array.from(rule1).join(',');
+        document.querySelector("#rule2").value = Array.from(rule2).join(',');
+        document.querySelector("#cubecolors").value = aliveColors.map(function(i){
+            return `(${255*i.r},${255*i.g}, ${255*i.b})`;
+        });
+        document.querySelector("#falive").value = fraction.toFixed(2);
+        document.querySelector("#cspacing").value = delta.toFixed(2);
+        document.querySelector("#csize").value = sideLength;
+        document.querySelector("#cbgcolor").value = `(${bgColor.r}, ${bgColor.g}, ${bgColor.b})`;
+        document.querySelector("#rotvel").value = `(${rotX.toFixed(2)},${rotY.toFixed(2)})`;
+
+        // set the line height of the pause-label
+        let h = getComputedStyle(document.getElementById("pause-btn")).height;
+        document.getElementById("pause-label").style.height = h;
+        document.getElementById("pause-label").style.lineHeight = h;
+    };
+
+    document.querySelector("#settings-close").onclick= function() {
+        // FUnctionality that occurs when the settings menu is closed.
+        viewportOpen = false;
+        document.querySelector("#settings-menu").style.display = "none";
+        document.querySelector("#settings").style.display = "inline-block"
+    }
+
+    document.getElementById("pause-btn").onclick = function() {
+        // When the pause music button is pressed.
+        if(pauseState) {
+            pauseState = false;
+            document.querySelector("audio").play();
+            this.src = "assets/pause2.png"
+        } else {
+            pauseState = true; // update pause state
+            document.querySelector("audio").pause(); // pause audio
+            this.src = "assets/play1.jpeg"; // change image to a play button.
+        }
+
+    }
+
+    document.querySelector("#rotvel").onchange = function() {
+        // User update to rotational velocity
+        let xy = this.value.replace(/[\(|\)]/g, "").split(",").map(Number);
+        rotX = parseFloat(xy[0]);
+        rotY = parseFloat(xy[1]);
+    }
+
+    document.querySelector("#neighborhood").onchange = function() {
+        // User update to neighborhood
+        if ( this.value === "std") {
+            neighborhoodFunction = getNeighbors;
+        }
+        else if (this.value === "ext") {
+            neighborhoodFunction = getExtendedNeighbors;
+        }
+        else {alert("select error")}
+    }
+
+    document.querySelector("#simspeed").onchange = function() {
+        // User update to simulation speed (using range slider)
+        delay = -1*parseInt(document.querySelector("#simspeed").value);
+    }
+
+    document.querySelector("#spatial-oscillation").onchange = function() {
+        spatialOscillation = this.checked
+    }
+
+    document.querySelector("#cubecolors").onchange = function() {
+        aliveColors = this.value.split(",(").map((i)=>{
+            return new THREE.Color("rgb(" + i.replace(/[\(|\)]/g, "") + ")");
+        });
+        
+    }
+
+    document.querySelector("#rule1").onchange = function() {
+        rule1 = new Set(this.value.split(",").map(Number).filter((i)=>{
+            return i <= 6 && i >= 0 && typeof(i) === typeof(1);
+        })); 
+    }
+
+    document.querySelector("#rule2").onchange = function() {
+        rule2 = new Set(this.value.split(",").map(Number).filter((i)=>{
+            return i <= 6 && i >= 0 && typeof(i) === typeof(1);
+        })); 
+    }
+
+    document.querySelector("#restart").onclick = function() {
+        cancelAnimationFrame(myReq);
+        var cnv = document.querySelector("canvas");
+        document.body.removeChild(cnv);
+        tdead = 0;
+        talive = 0;
+        cdead = 0;
+        calive = 0;
+        itcount = 0;
+        delta = delta0;
+        document.querySelector("audio").currentTime = 0
+        Array.from(document.getElementsByClassName("data-td")).forEach((i)=>{
+            i.innerText = "";
+        });
+        main(N, fraction, sideLength, rotX, rotY, delta, delay, opacity, deadTransparent);
+    }
+
+    document.querySelector("#cbgcolor").onchange = function() {
+        let rgb = this.value.replace(/[\(|\)]/g, "").split(",").map(Number);
+        bgColor.r = rgb[0];
+        bgColor.g = rgb[1];
+        bgColor.b = rgb[2];
+        //renderer.setClearColor (new THREE.Color(`rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`), 1);
+    }
+
+
+    // Start program
+    // --------------------------------------------------------------------------------------------------------
+    function main(){
+        
+        const analyser = audioData.analyser;
+        const bufferLength = audioData.bufferLength;
+        const dataArray= audioData.dataArray;
+        
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+        camera.position.z = cameraPosZ;
+        renderer = new THREE.WebGLRenderer({alpha: true });
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+        let data = buildCubeGrid(N, fraction, s=sideLength, d=delta, opacity = opacity);
+        let grid = data.grid;
+        let marray = data.marray;
+
+        scene.add( grid );
+
+        var counter = 0;
+        var pcounter = 0;
+        
+        // Extra UI methods, need this here for access to marray
+        function translation () {
+            // (not currently used)
+            // shift cube around
+            let ndelta = parseFloat(this.value);
+            for (let i = 0; i < N; ++i) {
+                for (let j = 0; j < N; ++j) {
+                    for (let k = 0; k < N; ++k) {
+                        marray[i][j][k].position.x += (delta - ndelta);
+                        marray[i][j][k].position.y += (delta - ndelta);
+                        marray[i][j][k].position.z += (delta - ndelta);
+                        
+                    }
+                }
+            }
+            delta = ndelta;
+        }
+
+        function planarExpansion() {
+            // (not currently used)
+            // decompose cube into planes
+            let ndelta = parseFloat(this.value);
+            for (let i = 0; i < N; ++i) {
+                for (let j = 0; j < N; ++j) {
+                    for (let k = 0; k < N; ++k) {
+                        marray[i][j][k].position.x += i*(delta - ndelta);
+                        marray[i][j][k].position.y += i*(delta - ndelta);
+                        marray[i][j][k].position.z += i*(delta - ndelta);
+                        
+                    }
+                }
+            }
+            delta = ndelta;
+        }
+        
+        document.querySelector("#gsize").onchange = function() {
+            // update grid size
+            N = parseInt(this.value);
+            document.querySelector("#restart").click();
+        }
+
+        
+        document.querySelector("#csize").onchange = function() {
+            // update cube size
+            sideLength = parseFloat(this.value);
+            for (let i = 0; i < N; ++i) {
+                for (let j = 0; j < N; ++j) {
+                    for (let k = 0; k < N; ++k) {
+                        marray[i][j][k].scale.x = sideLength;
+                        marray[i][j][k].scale.y = sideLength;
+                        marray[i][j][k].scale.z = sideLength;
+                    }
+                }
+            }
+        }
+
+        document.querySelector("#cspacing").onchange = function() {
+            // control cube spacing
+            let ndelta = parseFloat(this.value);
+            for (let i = 0; i < N; ++i) {
+                for (let j = 0; j < N; ++j) {
+                    for (let k = 0; k < N; ++k) {
+                        marray[i][j][k].position.x += i*(delta - ndelta);
+                        marray[i][j][k].position.y +=  j*(delta - ndelta);
+                        marray[i][j][k].position.z +=  k*(delta - ndelta);
+                    }
+                }
+            }
+            delta = ndelta;
+        }
+
+        document.querySelector("#falive").onchange = function() {
+            // control population size
+            fraction = parseFloat(document.querySelector("#falive").value);
+            n = Math.floor(fraction * Math.pow(N, 3));
+
+            var alive = [];
+            var dead = [];
+            for (let i = 0; i < N; ++i) {
+                for (let j = 0; j < N; ++j) {
+                    for (let k = 0; k < N; ++k) {
+                        if(marray[i][j][k].ALIVE) {
+                            alive.push(marray[i][j][k]);
+                        }
+                        else{
+                            dead.push(marray[i][j][k]);
+                        }
+                    }
+                }
+            }
+
+            if (frandomKill) {
+                alive = _.sample(alive, alive.length);
+                dead = _.sample(dead, dead.length);
+
+            }
+
+            if( alive.length < n ) {
+                
+                let newalive = n-alive.length < dead.length ? n - alive.length : dead.length;
+                console.log("creating:",newalive)
+                for(let i = 0; i < newalive; ++i) {
+                    giveLife(dead[i]);
+                    cdead -= 1;
+                    talive += 1;
+                    calive += 1;
+                }
+            }
+            else if( alive.length > n ) {
+                
+                let newdead = alive.length - n;
+                console.log("killing:",newdead)
+                for(let i = 0; i < newdead; ++i) {
+                    console.log(i)
+                    kill(alive[i]);
+                    calive -= 1;
+                    tdead += 1;
+                    cdead += 1;
+                }
+            }
+        }
+
+        // animation loop
+        function animate() {
+
+            // update data points in settings menu
+            if (viewportOpen) {
+                updateData();
+            }
+
+            counter = (counter + 1)%(delay+1);
+            pcounter = (pcounter + 1)%(progressiveUpdateDelay+1);
+            
+            if (counter === delay) { // have group of tasks occur after a particular delay
+                
+                itcount += 1;
+                execRules(N, marray, deadTransparent);
+                pulser(itcount);
+                
+                // add random color to alive colors
+                var rv = 0, rg = 0, rb = 0;
+                var val = Math.floor(Math.random()*225) + 31;
+                if (randColorChannels.r) {
+                    rv = val;
+                }
+                if (randColorChannels.g) {
+                    if (equalizeRandColorChannels) {
+                        rg = val;
+                    }
+                    else {
+                        rg = Math.floor(Math.random()*225) + 31;
+                    }
+                }
+                if (randColorChannels.b) {
+                    if (equalizeRandColorChannels) {
+                        rb = val;
+                    } else {
+                        rb = Math.floor(Math.random()*225) + 31;
+                    }
+                }
+                aliveColors.push(new THREE.Color(`rgb(${rv}, ${rg}, ${rb})`))
+                if (Math.random() <= pDelete) {
+                    aliveColors.pop();
+                }
+                
+            }
+            if (pcounter === progressiveUpdateDelay) { // have group of tasks occur after a different delay
+
+                // spontaneous births/ deaths
+                var event = new Event('change');
+                var rv_falive = Math.random();;
+                document.querySelector("#falive").value = rv_falive;
+                document.querySelector("#falive").dispatchEvent(event);
+                document.querySelector("#falive").value = rv_falive.toFixed(2);
+
+                // grid size change
+                //var event = new Event('change');
+                // document.querySelector("#gsize").value = Math.floor(18*Math.random()) + 2;
+                // document.querySelector("#gsize").dispatchEvent(event);
+                
+                // rule updates
+                // 1) check neighborhood
+                if (Math.random() <= neighborhoodChangeThreshold) {
+                    console.log("neighborhood change")
+                    if( document.querySelector("#neighborhood").value === "std") {
+                        document.querySelector("#neighborhood").value = "ext";
+                    } else {
+                        document.querySelector("#neighborhood").value = "std";
+                    }
+                    var event = new Event('change');
+                    document.querySelector("#neighborhood").dispatchEvent(event);
+                }
+
+                if( document.querySelector("#neighborhood").value === "std" ) {
+                    let ri1 = Math.floor(Math.random() * 7);
+                    let ri2 = Math.floor(Math.random() * 7);
+                    if( rule1.has(ri1) ) {
+                        rule1.delete(ri1)
+                    } else {
+                        rule1.add(ri1)
+                    }
+                    if( rule2.has(ri2) ) {
+                        rule1.delete(ri2)
+                    } else {
+                        rule2.add(ri2)
+                    }
+                } else {
+                    let ri1 = [Math.floor(Math.random() * 27), Math.floor(Math.random() * 27)];
+                    let ri2 = [Math.floor(Math.random() * 27),Math.floor(Math.random() * 27)];
+                    for( let i = 0; i < ri1.length; ++i) {
+                        if( rule1.has(ri1[i]) ) {
+                            rule1.delete(ri1[i])
+                        } else {
+                            rule1.add(ri1[i])
+                        }
+                    }
+                    
+                    for( let i = 0; i < ri2.length; ++i) {
+                        if( rule2.has(ri2[i]) ) {
+                            rule2.delete(ri2[i])
+                        } else {
+                            rule2.add(ri2[i])
+                        }
+                    }
+
+                }
+            }
+
+            myReq = requestAnimationFrame( animate ); // store animation in state variable which can be cancelled if needed
+
+            grid.rotation.x += rotX;
+            grid.rotation.y += rotY;
+
+            if (spatialOscillation) {
+                if (delta < upperOscLimit && dir > 0) {
+                    var event = new Event('change');
+                    document.querySelector("#cspacing").value = (delta + Math.abs(dir));
+                    document.querySelector("#cspacing").dispatchEvent(event);
+                    document.querySelector("#cspacing").value = parseFloat((document.querySelector("#cspacing").value)).toFixed(2)
+                }
+                else if (delta > lowerOscLimit && dir < 0) {
+                    var event = new Event('change');
+                    document.querySelector("#cspacing").value = delta - Math.abs(dir);
+                    document.querySelector("#cspacing").dispatchEvent(event);
+                    document.querySelector("#cspacing").value = parseFloat((document.querySelector("#cspacing").value)).toFixed(2)
+                } 
+                else {
+                    dir *= -1;
+                }
+            }
+
+            // audio animation
+            // get current audio data values
+            analyser.getByteFrequencyData(dataArray);
+
+            let max_val = -Infinity;
+            let avg = 0;
+
+            for(let i = 0; i < bufferLength; i++) {
+                let barHeight = dataArray[i];
+
+                avg += barHeight; 
+                
+                if(barHeight > max_val) {
+                    max_val = barHeight;
+                }
+            }
+            avg /= bufferLength;
+
+            if (true && counter === delay) {
+                // stick stuff in here to add delay to sound/visual effects
+                //console.log(avg)
+                //dir = avg/800; // oscillation speed as a function of music frequency
+                //console.log(dir)
+                //upperOscLimit = Math.pow(avg,3)/Math.pow(70,3);
+            }
+
+            // stop updating audio dependent variables when audio paused.
+            if (!pauseState) {
+                rotX = avg/1000+rotXoff; // rotation speed as a function of music frequency
+                rotY = avg/1000+rotYoff;
+                let v =  Math.round(-1.54*avg + 139.5);
+                delay = v < 1 ? 1 : (v > 40 ? 40 : v);
+                // console.log(delay)
+                let rn = Math.floor(Math.random()*3);
+                let val = Math.pow(avg,3)/Math.pow(70,3) * avg + 10;
+                console.log(lightChannels)
+                var rv = 0, rg = 0, rb = 0;
+                if (lightChannels.r) {
+                    rv = val;
+                }
+                if (lightChannels.g) {
+                    rg = val;
+                }
+                if (lightChannels.b) {
+                    rb = val;
+                }
+                // update .light (synchronized with average song frequency)
+                document.querySelector(".light").style.border = `20px solid rgb(${rv}, ${rg},${rb})`;
+            }
+            
+            renderer.render( scene, camera );
+        }
+        animate();
+    }
+
+    // Audio methods
+    function audioAnalysis() {
+        // Setup audio analysis tools
+        let audio = document.querySelector("audio");
+        let audioCtx = new AudioContext();
+        let stream = audio.captureStream();
+        let source = audioCtx.createMediaStreamSource(stream);
+        
+        // window.source = source;
+        analyser = audioCtx.createAnalyser();
+        const listen = audioCtx.createGain();
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        source.connect(listen);
+        listen.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        return {
+            analyser: analyser,
+            dataArray: dataArray,
+            bufferLength: bufferLength
+        }
+    }
+
+    function audioPlayOnClick() {
+        // handles audio data setup
+        audioData = audioAnalysis();
+        document.querySelector("audio").play();
+        document.body.removeEventListener("click", audioPlayOnClick)
+    }
+    
+    window.onload = function(){
+        // functionality that occurs when page loads
+        document.body.addEventListener("click", audioPlayOnClick);
+        // invoke main function on click
+        function clickToStart(){
+            main();
+            document.body.removeEventListener("click", clickToStart); // remove this event listener after called.
+            document.querySelector("#page-1").style.display = "none"; // hide welcome screen
+        }
+        document.body.addEventListener("click", clickToStart);
+    }
+</script>
+</html>
